@@ -17,16 +17,23 @@ struct ContentView: View {
     @State private var stepCount: Int = 0
     
     //logika baru penguibn utk nentuin dia lagingapain
-    var penguinStatus: (imageName: String, message: String, color: Color) {
-        if stepCount < 30 {
-            return ("egg_pixel", "Masih telur, jangan cuma duduk!", .gray)
-        } else if stepCount < 60 {
-            return ("baby_pixel", "Netas! Mulai gerak, bakar kalori.", .yellow)
-        } else if stepCount < 90 {
-            return ("walk_pixel", "Kardio aktif. Terus jalan!", .orange)
+    // update = nambain target
+    var penguinStatus: (imageName: String, message: String, color: Color, target: Int) {
+        if stepCount < 100 {
+            return ("egg_pixel", "Masih telur, jangan cuma duduk!", .gray, 100)
+        } else if stepCount < 200 {
+            return ("baby_pixel", "Netas! Mulai gerak, bakar kalori.", .yellow, 200)
+        } else if stepCount < 300 {
+            return ("walk_pixel", "Kardio aktif. Terus jalan!", .orange, 300)
         } else {
-            return ("muscular_pixel", "BOOM! 1000 Langkah. Otot terbentuk!", .blue)
+            return ("muscular_pixel", "BOOM! 1000 Langkah. Otot terbentuk!", .blue, 500)
         }
+    }
+    
+    //ubah lanbgkah jadi persentase utk isi circle
+    var stepProgress: Double {
+        let progress = Double(stepCount) / Double(penguinStatus.target)
+        return min(progress, 1.0)
     }
     
     var body: some View {
@@ -47,16 +54,36 @@ struct ContentView: View {
                     .fontWeight(.black)
                     .foregroundColor(penguinStatus.color)
                 // tampilan ikon dinamis dan message
-                VStack(spacing: 20){
-                    Image(penguinStatus.imageName)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 150, height: 150)
+                
+                //update visual progress circle
+                VStack(spacing: 30){
+                    ZStack {
+                        // bg circle jalur
+                        Circle()
+                            .stroke(lineWidth: 20)
+                            .opacity(0.2)
+                            .foregroundColor(penguinStatus.color)
+                        //circle pengisi sesuai langkah
+                        Circle()
+                        // trim buat motong sesuai presentase
+                            .trim(from: 0.0, to: CGFloat(stepProgress))
+                            .stroke(style: StrokeStyle(lineWidth: 20, lineCap: .round, lineJoin: .round))
+                            .rotationEffect(Angle(degrees: -90))
+                            .foregroundColor(penguinStatus.color)
+                            .animation(.linear(duration: 0.5), value: stepProgress)
+                        Image(penguinStatus.imageName)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 130, height: 130)
                         //.foregroundColor(penguinStatus.color)
-                        .animation(.spring(), value: stepCount)
+                            .animation(.spring(), value: stepCount)
+                    }
+                    .frame(width: 240, height: 240) //ukuran total cincin
+                    
                     Text(penguinStatus.message)
                         .font(.title3)
                         .fontWeight(.medium)
+                        .foregroundColor(penguinStatus.color)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                 }
@@ -65,10 +92,17 @@ struct ContentView: View {
                 VStack {
                     Text("\(stepCount)")
                         .font(.system(size: 80, weight: .heavy, design: .rounded))
-                    Text("Steps today")
+                    Text("Target fase ini: \(penguinStatus.target)")
                         .font(.headline)
                         .foregroundColor(.secondary)
                 }
+                
+                Text("Bawa iPhone-mu berjalan untuk menetaskan Penguin!")
+                    .font(.footnote)
+                    .foregroundColor(.gray)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+                    .padding(.top, 20)
                 //tombol reset dan simulasi, disabled
 //                HStack(spacing:20 ) {
 //                    //tombol reset
@@ -101,12 +135,12 @@ struct ContentView: View {
 //                    .padding(.horizontal)
 //                }
                 
-                Text("Bring ur iphone to hatch the penguin")
-                    .font(.footnote)
-                    .foregroundColor(.gray)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
-                    .padding(.top, 20)
+//                Text("Bring ur iphone to hatch the penguin")
+//                    .font(.footnote)
+//                    .foregroundColor(.gray)
+//                    .multilineTextAlignment(.center)
+//                    .padding(.horizontal, 40)
+//                    .padding(.top, 20)
             }
             .padding()
         }
@@ -127,6 +161,8 @@ struct ContentView: View {
                     DispatchQueue.main.async {
                         self.stepCount = Int(truncating: data.numberOfSteps)
                     }
+                    print("sensor langkah tersedia di perangkat ini, langkah: \(stepCount)")
+
                 }
                 
             }
