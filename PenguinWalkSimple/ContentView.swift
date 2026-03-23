@@ -16,23 +16,25 @@ struct ContentView: View {
     // dgn pakai appstorage, data disipman di memori hp, kalau @state doang bakalan ilang kalau dikill, tapi karna pakai coremotion, data udah ada di sistem, jadi pakai @state fungsinya vari sementara buat nampilin di layar
     @State private var stepCount: Int = 0
     
+    let targetHarian: Int = 1000
+    
     //logika baru penguibn utk nentuin dia lagingapain
     // update = nambain target
-    var penguinStatus: (imageName: String, message: String, color: Color, target: Int) {
-        if stepCount < 100 {
-            return ("egg_pixel", "Masih telur, jangan cuma duduk!", .gray, 100)
-        } else if stepCount < 200 {
-            return ("baby_pixel", "Netas! Mulai gerak, bakar kalori.", .yellow, 200)
-        } else if stepCount < 300 {
-            return ("walk_pixel", "Kardio aktif. Terus jalan!", .orange, 300)
+    var penguinStatus: (imageName: String, message: String, color: Color) {
+        if stepCount < 250 {
+            return ("egg_pixel", "Masih telur, jangan cuma duduk!", .gray)
+        } else if stepCount < 500 {
+            return ("baby_pixel", "Netas! Mulai gerak, bakar kalori.", .yellow)
+        } else if stepCount < 750 {
+            return ("walk_pixel", "Kardio aktif. Terus jalan!", .orange)
         } else {
-            return ("muscular_pixel", "BOOM! 1000 Langkah. Otot terbentuk!", .blue, 500)
+            return ("muscular_pixel", "BOOM! 1000 Langkah. Otot terbentuk!", .blue)
         }
     }
     
     //ubah lanbgkah jadi persentase utk isi circle
     var stepProgress: Double {
-        let progress = Double(stepCount) / Double(penguinStatus.target)
+        let progress = Double(stepCount) / Double(targetHarian)
         return min(progress, 1.0)
     }
     
@@ -92,7 +94,7 @@ struct ContentView: View {
                 VStack {
                     Text("\(stepCount)")
                         .font(.system(size: 80, weight: .heavy, design: .rounded))
-                    Text("Target fase ini: \(penguinStatus.target)")
+                    Text("Target Harian: \(targetHarian)")
                         .font(.headline)
                         .foregroundColor(.secondary)
                 }
@@ -103,49 +105,18 @@ struct ContentView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
                     .padding(.top, 20)
-                //tombol reset dan simulasi, disabled
-//                HStack(spacing:20 ) {
-//                    //tombol reset
-//                    Button(action: {
-//                        stepCount = 0
-//                        let impact = UIImpactFeedbackGenerator(style: .heavy)
-//                            impact.impactOccurred()
-//                    }) {
-//                        Image(systemName: "trash")
-//                            .font(.title2)
-//                            .padding()
-//                            .background(Color.red.opacity(0.2))
-//                            .foregroundColor(.red)
-//                            .cornerRadius(12)
-//                    }
-//                    //tombol siumulasi
-//                    Button(action: {
-//                        stepCount += 1
-//                        let impactMed = UIImpactFeedbackGenerator(style: .medium)
-//                        impactMed.impactOccurred()
-//                    }) {
-//                        Text("Jalan Yuk! (+1)")
-//                            .font(.headline)
-//                            .padding()
-//                            .frame(maxWidth: .infinity)
-//                            .background(Color.blue)
-//                            .foregroundColor(.white)
-//                            .cornerRadius(12)
-//                    }
-//                    .padding(.horizontal)
-//                }
-                
-//                Text("Bring ur iphone to hatch the penguin")
-//                    .font(.footnote)
-//                    .foregroundColor(.gray)
-//                    .multilineTextAlignment(.center)
-//                    .padding(.horizontal, 40)
-//                    .padding(.top, 20)
+
             }
             .padding()
         }
         .onAppear{
             startNgitungLangkah()
+        }
+        .onChange(of: penguinStatus.imageName) { oldImage, newImage in
+            //haptic ketika gbr berubah (naik level)
+            if newImage != newImage {
+                mainkanGetaran(tipe: .heavy)
+            }
         }
     }
     //place where magic happens
@@ -154,14 +125,25 @@ struct ContentView: View {
             // miinta data mulai dari jam 00:00 hari ini
             let awalHariIni = Calendar.current.startOfDay(for: Date())
             
-            //nyalakan sensorn
-            pedometer.startUpdates(from: awalHariIni) { dataLangkah, error in
-                // kalo ada data yg masuk dari iphone
-                if let data = dataLangkah {
+            //query instanss tarik data dari jam 00 ke detik ini
+            pedometer.queryPedometerData(from: awalHariIni, to: Date()) { dataMasaLalu, error in
+                if let data = dataMasaLalu {
                     DispatchQueue.main.async {
                         self.stepCount = Int(truncating: data.numberOfSteps)
                     }
-                    print("sensor langkah tersedia di perangkat ini, langkah: \(stepCount)")
+                }
+                
+            }
+            
+            //live update step count
+            pedometer.startUpdates(from: Date()) { dataBaru, error in
+                // kalo ada data yg masuk dari iphone
+                if let data = dataBaru {
+                    DispatchQueue.main.async {
+                        //tambhain langkah baru ke langkah ygudah ada
+                        self.stepCount = Int(truncating: data.numberOfSteps)
+                    }
+                    print("sensor langkah tersedia di perangkat ini")
 
                 }
                 
@@ -171,6 +153,13 @@ struct ContentView: View {
         }
     }
     
+}
+
+//haptic feedback
+
+func mainkanGetaran(tipe: UIImpactFeedbackGenerator.FeedbackStyle) {
+    let generator = UIImpactFeedbackGenerator(style: tipe)
+    generator.impactOccurred()
 }
 
 #Preview {
