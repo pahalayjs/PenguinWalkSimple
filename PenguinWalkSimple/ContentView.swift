@@ -16,16 +16,24 @@ struct ContentView: View {
     // dgn pakai appstorage, data disipman di memori hp, kalau @state doang bakalan ilang kalau dikill, tapi karna pakai coremotion, data udah ada di sistem, jadi pakai @state fungsinya vari sementara buat nampilin di layar
     @State private var stepCount: Int = 0
     
-    let targetHarian: Int = 1000
+//    let targetHarian: Int = 1000
+
+    // pakai appstorage utk bikin wadah target harian, pertama instal, targetnya 1k
+    @AppStorage("targetHarian") private var targetHarian: Int = 1000
+    
     
     //logika baru penguibn utk nentuin dia lagingapain
     // update = nambain target
     var penguinStatus: (imageName: String, message: String, color: Color) {
-        if stepCount < 250 {
+        
+        let p25 = targetHarian/4
+        let p50 = targetHarian/2
+        
+        if stepCount < p25 {
             return ("egg_pixel", "Masih telur, jangan cuma duduk!", .gray)
-        } else if stepCount < 500 {
+        } else if stepCount < p50 {
             return ("baby_pixel", "Netas! Mulai gerak, bakar kalori.", .yellow)
-        } else if stepCount < 750 {
+        } else if stepCount < targetHarian {
             return ("walk_pixel", "Kardio aktif. Terus jalan!", .orange)
         } else {
             return ("muscular_pixel", "BOOM! 1000 Langkah. Otot terbentuk!", .blue)
@@ -91,12 +99,20 @@ struct ContentView: View {
                 }
                 
                 //dsiplay counter
-                VStack {
+                VStack(spacing: 10) {
                     Text("\(stepCount)")
                         .font(.system(size: 80, weight: .heavy, design: .rounded))
-                    Text("Target Harian: \(targetHarian)")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
+                    
+                    //stepper buat nambah/ngurangin target kelipatan 1k
+                    Stepper(value: $targetHarian, in: 1000...50000, step: 1000) {
+                        Text("Target Harian: \(targetHarian)")
+                            .font(.headline)
+                            .foregroundStyle(Color.secondary)
+                    }
+                    .padding(.horizontal, 40)
+//                    Text("Target Harian: \(targetHarian)")
+//                        .font(.headline)
+//                        .foregroundColor(.secondary)
                 }
                 
                 Text("Bawa iPhone-mu berjalan untuk menetaskan Penguin!")
